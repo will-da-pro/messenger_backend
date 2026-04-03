@@ -1,6 +1,6 @@
 daphne~=4.2.1
-Django~=6.0
-djangorestframework~=3.16.1
+Django~=6.0.3
+djangorestframework~=3.17.1
 django-cors-headers~=4.9.0
 django-filter~=25.2
 asgiref~=3.11.0
