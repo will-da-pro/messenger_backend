@@ -1,7 +1,8 @@
 import uuid
 from django.contrib.auth.models import AbstractUser
-from django.db import models
+from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.core.validators import MinLengthValidator
+from django.db import models
 
 # Create your models here.
 
@@ -26,7 +27,10 @@ class User(AbstractUser):
         unique=True,
         blank=False,
         null=False,
-        validators=[MinLengthValidator(3)],
+        validators=[
+            UnicodeUsernameValidator(),
+            MinLengthValidator(3, message="Username must be at least 3 characters."),
+        ],
         error_messages={"unique": "A user with that username already exists."},
         help_text="Required. 3–150 characters. Letters, digits and @.+-_ only.",
     )
@@ -40,6 +44,10 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
+
+    def save(self, *args, **kwargs):
+        self.full_clean()  # Runs validators
+        super().save(*args, **kwargs)
 
 
 # Model for channels
@@ -62,7 +70,9 @@ class Channel(models.Model):
     members = models.ManyToManyField(User, related_name="channels")
 
     # Channels must have one owner
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="owned_channels")
+    owner = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="owned_channels"
+    )
 
     def __str__(self):
         return self.channel_name
@@ -72,7 +82,9 @@ class Channel(models.Model):
 class Message(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="messages")
-    channel = models.ForeignKey(Channel, on_delete=models.CASCADE, related_name="messages")
+    channel = models.ForeignKey(
+        Channel, on_delete=models.CASCADE, related_name="messages"
+    )
 
     # 2000-character limit for text
     content = models.CharField(
@@ -81,5 +93,7 @@ class Message(models.Model):
         null=False,
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    reply_to = models.ForeignKey('self', on_delete=models.SET_NULL, related_name="replies", null=True)
+    reply_to = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, related_name="replies", null=True
+    )
     edited = models.BooleanField(default=False)
